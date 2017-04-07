@@ -1,0 +1,252 @@
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <limits.h>
+#include <netdb.h>
+
+#define PORT 12345
+#define BUFFER_SIZE 8192
+#define PACKET_SIZE 1000000
+
+char httpGetCommand[BUFFER_SIZE];
+char receivedData[1000000];
+
+/*
+	Récupère l'adresse de la machine courante
+*/
+struct sockaddr_in getAddress()
+{
+	struct sockaddr_in address;
+	bzero(&address, sizeof(address));
+	address.sin_port = htons(PORT);
+	address.sin_family = AF_INET;
+	address.sin_addr.s_addr = htonl(INADDR_ANY);
+
+	return address;
+}
+
+/*
+	Crée un socket d'écoute
+	address : adresse de la machine courante
+*/
+int createListenerSocket(struct sockaddr_in* address)
+{
+	int listenerSocket;
+	if ((listenerSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	{
+		printf("[ERROR] Listener socket creation\n");
+		exit(0);
+	}
+
+	bind(listenerSocket, (struct sockaddr *)address, sizeof(*address));
+	listen(listenerSocket, 5);
+
+	return listenerSocket;
+}
+
+/*
+	Crée un socket client en acceptant la connection
+	listenerSocket : socket d'écoute
+*/
+int getClientSocket(int listenerSocket)
+{
+	int addressSize = sizeof(struct sockaddr_in);
+	struct sockaddr_in clientAddress;
+	return accept(listenerSocket, (struct sockaddr*)&clientAddress, &addressSize);
+}
+
+/*
+	Extrait une propriété de la commande GET d'une requête HTTP
+	property : propriété à extraire
+	command : commande GET
+*/
+int getPropertyValuePositionInGetCommand(char* property, char* command)
+{
+	int i = 0;
+	char temporaryString[strlen(command)];
+	char strToCompare[strlen(property) + 2];
+	sprintf(strToCompare, "%s: ", property);
+	
+
+	for (i = 0; i < strlen(command) - strlen(strToCompare); ++i)
+	{
+		temporaryString[0] = '\0';
+		strncat(temporaryString, command + i, strlen(strToCompare));
+		if (strcmp(temporaryString, strToCompare) == 0)
+			return i + strlen(strToCompare);
+	}
+
+	return -1;
+}
+
+/*
+	Extrait la fin de la ligne du string à partir d'une position dans ce string
+	string : string dans lequel il faut extraire le résultat
+	firstPosition : position du premier caractère à récupérer
+*/
+char* getEndOfStringLine(char* string, int firstPosition)
+{
+	int stringLength = strlen(string);
+	int returnLinePosition = stringLength - 1;
+	int i = 0;
+
+	for (i = firstPosition; i < stringLength && returnLinePosition == stringLength - 1; ++i)
+		if (string[i] == '\n')
+			returnLinePosition = i - 1;
+
+	int endOfLineSize = i - firstPosition - 1;
+	char* endOfLine = malloc(sizeof(char) * endOfLineSize);
+	strncat(endOfLine, string + firstPosition, endOfLineSize);
+	endOfLine[endOfLineSize - 1] = '\0';
+	return endOfLine;
+}
+
+/*
+	Récupère le nom de l'hôte dans la commande GET d'une requête HTTP
+*/
+char* getHostFromGetCommand(char* command)
+{
+	static char host[HOST_NAME_MAX];
+
+	int propertyValuePosition = getPropertyValuePositionInGetCommand("Host", command);
+	char* hostPointer = getEndOfStringLine(command, propertyValuePosition);
+	strcpy(host, hostPointer);
+	free(hostPointer);
+
+	return host;
+}
+
+int getPort(char* host)
+{
+	char port[6];
+	int portStringIdToComplete = -1;
+	int i = 0;
+
+	for (i = 0; i < strlen(host); ++i)
+	{
+		if (portStringIdToComplete >= 0)
+			port[portStringIdToComplete] = host[i];
+
+		if (host[i] == ':' || portStringIdToComplete >= 0)
+			++portStringIdToComplete;
+	}
+
+	port[portStringIdToComplete + 1] = '\0';
+
+	if (portStringIdToComplete >= 0)
+		return atoi(port);
+	return 80;
+}
+
+char* getHostName(char* host)
+{
+	static char hostName[HOST_NAME_MAX];
+	int separatorPosition = -1;
+	int i = 0;
+
+	for (i = 0; i < strlen(host) && separatorPosition == -1; ++i)
+	{
+		if (host[i] == ':')
+			separatorPosition = i;
+	}
+
+	strcpy(hostName, host);
+	if (separatorPosition != -1)
+		hostName[separatorPosition] = '\0';
+
+	return hostName;
+}
+
+/*
+	Crée un client et récupère les données de la page demandée par la commande GET
+*/
+void getHostResponse(char* hostName, char* command, int clientSocket)
+{	
+	int port = getPort(hostName);
+	hostName = getHostName(hostName);
+	printf("=> %d : %s\n", port, hostName);
+
+	int hostSocket;
+	if ((hostSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	{
+		printf("[ERROR] Host socket creation\n");
+		return;
+	}
+
+	struct hostent* host = gethostbyname(hostName);
+	if (host == NULL)
+	{
+		printf("[ERROR] Host %s not found\n", hostName);
+		return;
+	}
+
+	struct sockaddr_in hostAddress;
+	bzero(&hostAddress, sizeof(hostAddress));
+	hostAddress.sin_family = AF_INET;
+	bcopy(host->h_addr, &hostAddress.sin_addr.s_addr, host->h_length);
+	hostAddress.sin_port = htons(port);
+
+	if (connect(hostSocket, (struct sockaddr*)&hostAddress, sizeof(hostAddress)) == -1)
+	{
+		printf("[ERROR] Unable to connect to %s\n", hostName);
+		return;
+	}
+
+	send(hostSocket, command, BUFFER_SIZE, 0);
+
+	int size_recv, total_size = 0;
+	char chunk[PACKET_SIZE];
+
+	int receivedDataCount = 0;
+
+	while (receivedDataCount < 9856)
+	{
+		int n = recv(hostSocket, receivedData, PACKET_SIZE, 0);
+
+		if (n < 0)
+			break;
+
+		receivedDataCount += n;
+		//receivedData[n] = '\0';
+		printf("=> Size : %d\n", receivedDataCount);
+		send(clientSocket, receivedData, PACKET_SIZE, 0);
+		//printf("===================\n%s\n", receivedData);
+	}
+
+	close(hostSocket);
+}
+
+int main (int argc, char *argv[])
+{
+	struct sockaddr_in address = getAddress();
+	int listenerSocket = createListenerSocket(&address);
+
+	while (1)
+	{
+		int clientSocket = getClientSocket(listenerSocket);
+
+		if (fork() == 0)
+		{
+			close(listenerSocket);
+
+			// Récupération de la commande GET du navigateur
+			recv(clientSocket, httpGetCommand, BUFFER_SIZE, 0);
+			printf("-----------------------------------\n%s\n-----------------------------------\n", httpGetCommand);
+
+			// Extraction de l'hôte
+			char* host = getHostFromGetCommand(httpGetCommand);
+			printf("=> Host : \"%s\"\n", host);
+
+			// Envoie de la requête à l'hôte
+			getHostResponse(host, httpGetCommand, clientSocket);
+
+			// Fermeture de la connexion entre le navigateur et le serveur
+			close(clientSocket);
+			exit(0);
+		}
+	}
+}
