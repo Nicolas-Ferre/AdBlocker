@@ -195,9 +195,11 @@ void getHostResponse(char* hostName, char* command, int clientSocket)
 		return;
 	}
 
-	send(hostSocket, command, BUFFER_SIZE, 0);
+	char modifierCommand[BUFFER_SIZE + 4];
+	sprintf(modifierCommand, "%s\r\n\r\n", command);
+	send(hostSocket, modifierCommand, BUFFER_SIZE, 0);
 
-	struct timeval tv = {30, 0};
+	struct timeval tv = {5, 0};
 	setsockopt(hostSocket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
 
 	while (1)
