@@ -10,7 +10,6 @@
 
 #define PORT 12345
 #define BUFFER_SIZE 8192
-#define PACKET_SIZE 500
 
 char httpGetCommand[BUFFER_SIZE];
 char receivedData[500];
@@ -164,54 +163,54 @@ char* getHostName(char* host)
 /*
 	Crée un client et récupère les données de la page demandée par la commande GET
 */
-void getHostResponse(char* hostName, char* command, int clientSocket)
+void retrieveHostResponse(char* hostName, char* command, int clientSocket)
 {	
 	int port = getPort(hostName);
 	hostName = getHostName(hostName);
 
-	int hostSocket;
-	if ((hostSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+	//if (port == 80)
 	{
-		printf("[ERROR] Host socket creation\n");
-		return;
+		int hostSocket;
+		if ((hostSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+		{
+			printf("[ERROR] Host socket creation\n");
+			return;
+		}
+
+		struct hostent* host = gethostbyname(hostName);
+		if (host == NULL)
+		{
+			printf("[ERROR] Host %s not found\n", hostName);
+			return;
+		}
+
+		struct sockaddr_in hostAddress;
+		bzero(&hostAddress, sizeof(hostAddress));
+		hostAddress.sin_family = AF_INET;
+		bcopy(host->h_addr, &hostAddress.sin_addr.s_addr, host->h_length);
+		hostAddress.sin_port = htons(port);
+
+		if (connect(hostSocket, (struct sockaddr*)&hostAddress, sizeof(hostAddress)) == -1)
+		{
+			printf("[ERROR] Unable to connect to %s\n", hostName);
+			return;
+		}
+
+		struct timeval tv = {10, 0};
+		setsockopt(hostSocket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
+		send(hostSocket, command, strlen(command), 0);
+
+		while (1)
+		{
+			int n = recv(hostSocket, receivedData, BUFFER_SIZE, 0);
+			if (n <= 0)
+				break;
+
+			send(clientSocket, receivedData, n, 0);
+		}
+
+		close(hostSocket);
 	}
-
-	struct hostent* host = gethostbyname(hostName);
-	if (host == NULL)
-	{
-		printf("[ERROR] Host %s not found\n", hostName);
-		return;
-	}
-
-	struct sockaddr_in hostAddress;
-	bzero(&hostAddress, sizeof(hostAddress));
-	hostAddress.sin_family = AF_INET;
-	bcopy(host->h_addr, &hostAddress.sin_addr.s_addr, host->h_length);
-	hostAddress.sin_port = htons(port);
-
-	if (connect(hostSocket, (struct sockaddr*)&hostAddress, sizeof(hostAddress)) == -1)
-	{
-		printf("[ERROR] Unable to connect to %s\n", hostName);
-		return;
-	}
-
-	char modifierCommand[BUFFER_SIZE + 4];
-	sprintf(modifierCommand, "%s\r\n\r\n", command);
-	send(hostSocket, modifierCommand, BUFFER_SIZE, 0);
-
-	struct timeval tv = {5, 0};
-	setsockopt(hostSocket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
-
-	while (1)
-	{
-		int n = recv(hostSocket, receivedData, PACKET_SIZE, 0);
-		if (n <= 0)
-			break;
-
-		send(clientSocket, receivedData, n, 0);
-	}
-
-	close(hostSocket);
 }
 
 int main (int argc, char *argv[])
@@ -227,17 +226,9 @@ int main (int argc, char *argv[])
 		{
 			close(listenerSocket);
 
-			// Récupération de la commande GET du navigateur
-			recv(clientSocket, httpGetCommand, BUFFER_SIZE, 0);
-			//printf("-----------------------------------\n%s\n-----------------------------------\n", httpGetCommand);
-
-			// Extraction de l'hôte
-			char* host = getHostFromGetCommand(httpGetCommand);
-			printf("=> Host : \"%s\"\n", host);
-
-			// Envoie de la requête à l'hôte
-			getHostResponse(host, httpGetCommand, clientSocket);
-			printf("=> End\n");
+			recv(clientSocket, httpGetCommand, BUFFER_SIZE, 0);	// Récupération de la commande GET du navigateur
+			char* host = getHostFromGetCommand(httpGetCommand);	// Extraction de l'hôte
+			retrieveHostResponse(host, httpGetCommand, clientSocket);	// Envoie de la requête à l'hôte
 
 			// Fermeture de la connexion entre le navigateur et le serveur
 			shutdown(clientSocket, SHUT_RDWR);
