@@ -10,10 +10,10 @@
 
 #define PORT 12345
 #define BUFFER_SIZE 8192
-#define PACKET_SIZE 1000000
+#define PACKET_SIZE 500
 
 char httpGetCommand[BUFFER_SIZE];
-char receivedData[1000000];
+char receivedData[500];
 
 /*
 	Récupère l'adresse de la machine courante
@@ -168,7 +168,6 @@ void getHostResponse(char* hostName, char* command, int clientSocket)
 {	
 	int port = getPort(hostName);
 	hostName = getHostName(hostName);
-	printf("=> %d : %s\n", port, hostName);
 
 	int hostSocket;
 	if ((hostSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
@@ -198,23 +197,16 @@ void getHostResponse(char* hostName, char* command, int clientSocket)
 
 	send(hostSocket, command, BUFFER_SIZE, 0);
 
-	int size_recv, total_size = 0;
-	char chunk[PACKET_SIZE];
+	struct timeval tv = {30, 0};
+	setsockopt(hostSocket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
 
-	int receivedDataCount = 0;
-
-	while (receivedDataCount < 9856)
+	while (1)
 	{
 		int n = recv(hostSocket, receivedData, PACKET_SIZE, 0);
-
-		if (n < 0)
+		if (n <= 0)
 			break;
 
-		receivedDataCount += n;
-		//receivedData[n] = '\0';
-		printf("=> Size : %d\n", receivedDataCount);
-		send(clientSocket, receivedData, PACKET_SIZE, 0);
-		//printf("===================\n%s\n", receivedData);
+		send(clientSocket, receivedData, n, 0);
 	}
 
 	close(hostSocket);
@@ -235,7 +227,7 @@ int main (int argc, char *argv[])
 
 			// Récupération de la commande GET du navigateur
 			recv(clientSocket, httpGetCommand, BUFFER_SIZE, 0);
-			printf("-----------------------------------\n%s\n-----------------------------------\n", httpGetCommand);
+			//printf("-----------------------------------\n%s\n-----------------------------------\n", httpGetCommand);
 
 			// Extraction de l'hôte
 			char* host = getHostFromGetCommand(httpGetCommand);
@@ -243,8 +235,10 @@ int main (int argc, char *argv[])
 
 			// Envoie de la requête à l'hôte
 			getHostResponse(host, httpGetCommand, clientSocket);
+			printf("=> End\n");
 
 			// Fermeture de la connexion entre le navigateur et le serveur
+			shutdown(clientSocket, SHUT_RDWR);
 			close(clientSocket);
 			exit(0);
 		}
