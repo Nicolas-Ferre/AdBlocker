@@ -167,10 +167,67 @@ void retrieveHostResponse(char* hostName, char* command, int clientSocket)
 {	
 	int port = getPort(hostName);
 	hostName = getHostName(hostName);
+	char portString[6];
+	sprintf(portString, "%d", port);
 
-	//if (port == 80)
+	if (port == 80)
 	{
-		int hostSocket;
+		struct addrinfo hints;
+		memset(&hints, 0, sizeof(hints));
+		hints.ai_family = AF_UNSPEC;
+		hints.ai_socktype = SOCK_STREAM;
+
+		int error;
+		struct addrinfo* addressInfo;
+		if ((error = getaddrinfo(hostName, portString, &hints, &addressInfo)) != 0)
+		{
+			fprintf(stderr, "[ERROR] getaddrinfo: %s\n", gai_strerror(error));
+			exit(1);
+		}
+
+		struct addrinfo* address;
+		for(address = addressInfo; address != NULL; address = address->ai_next)
+		{
+			int hostSocket;
+			if ((hostSocket = socket(address->ai_family, address->ai_socktype, address->ai_protocol)) == -1)
+			{
+				printf("[ERROR] Host socket creation\n");
+				continue;
+			}
+
+			if (connect(hostSocket, address->ai_addr, address->ai_addrlen) == -1)
+			{
+				printf("[ERROR] Unable to connect to %s\n", hostName);
+				close(hostSocket);
+				continue;
+			}
+
+			struct timeval tv = {5, 0};
+			setsockopt(hostSocket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
+			send(hostSocket, command, strlen(command), 0);
+
+			while (1)
+			{
+				int n = recv(hostSocket, receivedData, BUFFER_SIZE, 0);
+				if (n <= 0)
+					break;
+
+				send(clientSocket, receivedData, n, 0);
+			}
+
+			break;
+		}
+
+		if (address == NULL)
+		{
+			fprintf(stderr, "[ERROR] Connection\n");
+			exit(1);
+		}
+
+		freeaddrinfo(addressInfo);
+
+
+		/*int hostSocket;
 		if ((hostSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 		{
 			printf("[ERROR] Host socket creation\n");
@@ -193,10 +250,11 @@ void retrieveHostResponse(char* hostName, char* command, int clientSocket)
 		if (connect(hostSocket, (struct sockaddr*)&hostAddress, sizeof(hostAddress)) == -1)
 		{
 			printf("[ERROR] Unable to connect to %s\n", hostName);
+			close(hostSocket);
 			return;
 		}
 
-		struct timeval tv = {10, 0};
+		struct timeval tv = {5, 0};
 		setsockopt(hostSocket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
 		send(hostSocket, command, strlen(command), 0);
 
@@ -209,7 +267,7 @@ void retrieveHostResponse(char* hostName, char* command, int clientSocket)
 			send(clientSocket, receivedData, n, 0);
 		}
 
-		close(hostSocket);
+		close(hostSocket);*/
 	}
 }
 
@@ -236,4 +294,7 @@ int main (int argc, char *argv[])
 			exit(0);
 		}
 	}
+
+	close(listenerSocket);
+	return 0;
 }
