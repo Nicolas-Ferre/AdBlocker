@@ -16,7 +16,6 @@ void decoupageListe(char* motsList[LIST_LINE_COUNT], int* wordCount) {
 				strncpy(motsList[prochainMot], ligne, strlen(ligne) - 1);
 				prochainMot++;
 				(*wordCount)++;
-				printf("%s\n",motsList[prochainMot - 1]);
 			}
       	}
 	}	
