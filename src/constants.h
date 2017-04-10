@@ -3,5 +3,7 @@
 
 #define BUFFER_SIZE 8192
 #define PORT 12345
+#define LIST_LINE_COUNT 60946/5
+#define LIST_COLUMN_COUNT BUFFER_SIZE/10
 
 #endif

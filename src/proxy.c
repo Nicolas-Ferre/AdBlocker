@@ -9,7 +9,7 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-void retrieveHostResponse(char* host, char* command, int clientSocket)
+void retrieveHostResponse(char* host, char* command, int bufferSize, int clientSocket)
 {
 	static char buffer[BUFFER_SIZE];
 
@@ -28,7 +28,7 @@ void retrieveHostResponse(char* host, char* command, int clientSocket)
 		struct timeval tv = {5, 0};
 		setsockopt(hostSocket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&tv, sizeof(struct timeval));
 
-		send(hostSocket, command, strlen(command), 0);
+		send(hostSocket, command, bufferSize, 0);
 
 		while (1)
 		{
@@ -37,6 +37,9 @@ void retrieveHostResponse(char* host, char* command, int clientSocket)
 				break;
 
 			send(clientSocket, buffer, n, 0);
+
+			/*strncat(buffer, buffer, n);
+			printf("=========================\n%s\n", buffer);*/
 		}
 	}
 

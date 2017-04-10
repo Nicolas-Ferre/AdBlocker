@@ -7,6 +7,6 @@
 	command : commande GET de la requête HTTP à effectuer
 	clientSocket : socket de connexion avec le navigateur
 */
-void retrieveHostResponse(char* host, char* command, int clientSocket);
+void retrieveHostResponse(char* host, char* command, int bufferSize, int clientSocket);
 
 #endif
