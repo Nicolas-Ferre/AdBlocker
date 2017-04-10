@@ -13,10 +13,12 @@ void decoupageListe(char* motsList[LIST_LINE_COUNT], int* wordCount) {
 	   while ( fgets ( ligne, LIST_COLUMN_COUNT, fp ) != NULL ) {
 			char c = ligne[0];
 			if ( c == '.' || c == '-' || c == '_'  || (c>='1' && c<='9') || (c>='A' && c<='Z') || (c>='a' && c<='z') ) {
+				// On selectionne les termes utilisables par notre bloqueur
 				strncpy(motsList[prochainMot], ligne, strlen(ligne) - 1);
 				prochainMot++;
 				(*wordCount)++;
 				printf("%s\n",motsList[prochainMot - 1]);
+				// On ajoute chaque terme dans un tableau stocké en mémoir le temps de la connection
 			}
       	}
 	}	
