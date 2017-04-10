@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-void decoupageListe(char motsList[LIST_LINE_COUNT][LIST_COLUMN_COUNT], int* wordCount) {
+void decoupageListe(char* motsList[LIST_LINE_COUNT], int* wordCount) {
 	
 	char ligne[LIST_COLUMN_COUNT]; 
 	int prochainMot = 0, i = 0, j =0;

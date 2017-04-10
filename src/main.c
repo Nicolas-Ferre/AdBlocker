@@ -12,17 +12,22 @@
 
 int main (int argc, char *argv[])
 {
-	/*int wordCount = 0;
-	char listeMots[LIST_LINE_COUNT][LIST_COLUMN_COUNT];
+	int wordCount = 0;
+	int i = 0;
+	char* listeMots[LIST_LINE_COUNT];
+	for (i = 0; i < LIST_LINE_COUNT; ++i)
+		listeMots[i] = malloc(sizeof(char) * LIST_COLUMN_COUNT);
 	decoupageListe(listeMots, &wordCount);
 
-	int i = 0;
 	for (i = 0; i < wordCount; ++i)
 	{
 		printf("%s\n",listeMots[i]);
 	}
 
-	printf("=== Done ===\n");*/
+	for (i = 0; i < LIST_LINE_COUNT; ++i)
+		 free(listeMots[i]);
+
+	printf("=== Done ===\n");
 
 	char buffer[BUFFER_SIZE];
 	int listenerSocket = createListenerSocket();
