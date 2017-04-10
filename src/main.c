@@ -36,23 +36,27 @@ int main (int argc, char *argv[])
 					// Traitement de la requête GET
 					char* host = getHostFromGetCommand(buffer);	// Extraction de l'hôte
 
-					if (isAdOpti(host) == 0)
+					if (isAdOptiBis(host) == 0)
 						retrieveHostResponse(host, buffer, n, clientSocket);	// Envoie de la requête à l'hôte et envoie de la réponse au navigateur
-					else
+					else if (isAdOptiBis(host) == 1)
 						printf("Publicité supprimée : %s\n", host);
+					else
+						printf("Erreur : %s\n", host);
 				}
 				else if (strncmp(buffer, "CONNECT", 7) == 0)
 				{
 					// Traitement de la requête CONNECT
 					char* host = getHostFromGetCommand(buffer);	// Extraction de l'hôte
 
-					if (isAdOpti(host) == 0)
+					if (isAdOptiBis(host) == 0)
 					{
 						send(clientSocket, "HTTP/1.0 200 Connection established\r\n\r\n", strlen("HTTP/1.0 200 Connection established\r\n\r\n"), 0);
 						retrieveHostSslResponse(host, buffer, n, clientSocket);
 					}
-					else
+					else if (isAdOptiBis(host) == 1)
 						printf("Publicité supprimée : %s\n", host);
+					else
+						printf("Erreur : %s\n", host);
 				}
 			}
 
