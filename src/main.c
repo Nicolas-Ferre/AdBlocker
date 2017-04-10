@@ -17,19 +17,13 @@ int main (int argc, char *argv[])
 	char buffer[BUFFER_SIZE];
 	int listenerSocket = createListenerSocket();
 
-	// Chargement de la liste des liens publicitaires
-	int adTermsCount = 0;
-	char* adTerms[LIST_LINE_COUNT];
-	int i = 0;
-	for (i = 0; i < LIST_LINE_COUNT; ++i)
-		adTerms[i] = malloc(sizeof(char) * LIST_COLUMN_COUNT);
-	decoupageListe(adTerms, &adTermsCount);
+	//decoupageListeDansFichier();
 
 	while (listenerSocket != 0)
 	{
 		int clientSocket = getClientSocket(listenerSocket);
 
-		if (fork() == 0)
+		if (fork() == 0) 
 		{
 			close(listenerSocket);
 
@@ -42,7 +36,7 @@ int main (int argc, char *argv[])
 					// Traitement de la requête GET
 					char* host = getHostFromGetCommand(buffer);	// Extraction de l'hôte
 
-					if (isAd(host, adTerms, adTermsCount) == 0)
+					if (isAdOpti(host) == 0)
 						retrieveHostResponse(host, buffer, n, clientSocket);	// Envoie de la requête à l'hôte et envoie de la réponse au navigateur
 					else
 						printf("Publicité supprimée : %s\n", host);
@@ -52,7 +46,7 @@ int main (int argc, char *argv[])
 					// Traitement de la requête CONNECT
 					char* host = getHostFromGetCommand(buffer);	// Extraction de l'hôte
 
-					if (isAd(host, adTerms, adTermsCount) == 0)
+					if (isAdOpti(host) == 0)
 					{
 						send(clientSocket, "HTTP/1.0 200 Connection established\r\n\r\n", strlen("HTTP/1.0 200 Connection established\r\n\r\n"), 0);
 						retrieveHostSslResponse(host, buffer, n, clientSocket);
@@ -66,14 +60,10 @@ int main (int argc, char *argv[])
 			shutdown(clientSocket, SHUT_RDWR);
 			close(clientSocket);
 
-			for (i = 0; i < LIST_LINE_COUNT; ++i)
-				free(adTerms[i]);
 			exit(0);
 		}
 	}
 
-	for (i = 0; i < LIST_LINE_COUNT; ++i)
-		 free(adTerms[i]);
 	close(listenerSocket);
 	return 0;
 }

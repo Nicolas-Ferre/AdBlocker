@@ -42,7 +42,7 @@ void decoupageListeDansFichier() {
 			char c = ligne[0];
 			if ( c == '.' || c == '-' || c == '_'  || (c>='1' && c<='9') || (c>='A' && c<='Z') || (c>='a' && c<='z') ) {
 				// On selectionne les termes utilisables par notre bloqueur
-				fprintf(fp2, "%s\n", ligne);
+				fprintf(fp2, "%s", ligne);
 				// On ajoute chaque terme dans un fichier qui sera réutilisé lors des connexions
 			}
       	}
