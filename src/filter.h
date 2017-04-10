@@ -3,6 +3,6 @@
 
 #include "constants.h"
 
-void isAd(char * host, char* motsList[LIST_LINE_COUNT] );
+int isAd(char * host, char* motsList[LIST_LINE_COUNT], int nombreMotsList);
 
 #endif

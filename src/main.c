@@ -4,6 +4,7 @@
 #include "string.h"
 #include "constants.h"
 #include "extraction.h"
+#include "filter.h"
 #include <stdlib.h>
 #include <netdb.h>
 #include  <unistd.h>
@@ -23,6 +24,8 @@ int main (int argc, char *argv[])
 	{
 		printf("%s\n",listeMots[i]);
 	}
+
+	printf("=> %d\n", isAd("google.com^$image,third-party,domain=streamcloud.eu", listeMots, wordCount));
 
 	for (i = 0; i < LIST_LINE_COUNT; ++i)
 		 free(listeMots[i]);

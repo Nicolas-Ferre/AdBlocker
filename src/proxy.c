@@ -38,8 +38,8 @@ void retrieveHostResponse(char* host, char* command, int bufferSize, int clientS
 
 			send(clientSocket, buffer, n, 0);
 
-			/*strncat(buffer, buffer, n);
-			printf("=========================\n%s\n", buffer);*/
+			strncat(buffer, buffer, n);
+			printf("|=========================\n%s\n=========================|\n", buffer);
 		}
 	}
 
