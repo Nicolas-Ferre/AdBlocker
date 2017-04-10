@@ -1,6 +1,7 @@
 /*
 !src/
 src/*
+!assets/
 !src/*.h
 !src/*.c
 !makefile
