@@ -32,7 +32,6 @@ void decoupageListe(char* motsList[LIST_LINE_COUNT], int* wordCount) {
 void decoupageListeDansFichier() {
 	
 	char ligne[LIST_COLUMN_COUNT]; 
-	int prochainMot = 0, i = 0, j =0;
 	FILE *fp;
 	FILE *fp2;
    	fp=fopen("assets/easylist.txt","r"); 
