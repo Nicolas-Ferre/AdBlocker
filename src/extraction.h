@@ -9,5 +9,6 @@
 #include "constants.h"
 
 void decoupageListe(char* motsList[LIST_LINE_COUNT], int* wordCount);
+void decoupageListeDansFichier();
 
 #endif

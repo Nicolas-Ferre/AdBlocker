@@ -38,16 +38,19 @@ int isAdOpti(char * host ) {
 			if ( c == '.' || c == '-' || c == '_'  || (c>='1' && c<='9') || (c>='A' && c<='Z') || (c>='a' && c<='z') ) {
 				char * res = strstr(host,ligne);
 				if (res != 0) {
+					fclose(fp);
 					return 1;
 					// Si l'hostname contient motsList[i] alors c'est un lien vers un hébergeur de publicité, on renvoie vrai (1)
 				}
 			}
       	}
+		fclose(fp);
 		return 0;
 	}	
 	 	
     else {
         fputs("erreur: mauvais chemin d'acces pour la liste\n",stderr);
+		return -1;
     }
 	fclose(fp);
 }
@@ -62,15 +65,17 @@ int isAdOptiBis(char * host ) {
 	char ligne[LIST_COLUMN_COUNT];
 	int i;	
 	FILE *fp;
-   	fp=fopen("assets/easylist.txt","r"); 
+   	fp=fopen("assets/list.txt","r"); 
 	if(fp!=NULL) {
 	   while ( fgets ( ligne, LIST_COLUMN_COUNT, fp ) != NULL ) {
 			char * res = strstr(host,ligne);
 			if (res != 0) {
+				fclose(fp);
 				return 1;
 				// Si l'hostname contient motsList[i] alors c'est un lien vers un hébergeur de publicité, on renvoie vrai (1)
 			}
       	}
+		fclose(fp);
 		return 0;
 	}	
 	 	
