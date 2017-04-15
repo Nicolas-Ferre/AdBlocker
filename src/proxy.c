@@ -41,6 +41,7 @@ void retrieveHostResponse(char* host, char* command, int bufferSize, int clientS
 
 	shutdown(*hostSocket, SHUT_RDWR);
 	close(*hostSocket);
+	*hostSocket = -1;
 }
 
 void retrieveHostSslResponse(char* host, int clientSocket, int* hostSocket)
@@ -94,4 +95,5 @@ void retrieveHostSslResponse(char* host, int clientSocket, int* hostSocket)
 
 	shutdown(*hostSocket, SHUT_RDWR);
 	close(*hostSocket);
+	*hostSocket = -1;
 }

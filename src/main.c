@@ -12,18 +12,27 @@
 #include  <string.h>
 #include <signal.h>
 
-int listenerSocket;
-int clientSocket;
-int hostSocket;
+int listenerSocket = -1;
+int clientSocket = -1;
+int hostSocket = -1;
 
 void clearProgram()
 {
-	shutdown(listenerSocket, SHUT_RDWR);
-	close(listenerSocket);
-	shutdown(clientSocket, SHUT_RDWR);
-	close(clientSocket);
-	shutdown(hostSocket, SHUT_RDWR);
-	close(hostSocket);
+	if (listenerSocket < 0)
+	{
+		shutdown(listenerSocket, SHUT_RDWR);
+		close(listenerSocket);
+	}
+	if (clientSocket < 0)
+	{
+		shutdown(clientSocket, SHUT_RDWR);
+		close(clientSocket);
+	}
+	if (hostSocket < 0)
+	{
+		shutdown(hostSocket, SHUT_RDWR);
+		close(hostSocket);
+	}
 	exit(0);
 }
 
@@ -44,6 +53,7 @@ int main (int argc, char *argv[])
 		if (fork() == 0)
 		{
 			close(listenerSocket);
+			listenerSocket = -1;
 			int n = recv(clientSocket, buffer, BUFFER_SIZE, 0);	// Récupération de la commande GET du navigateur
 
 			if (strncmp(buffer + n - 4, "\r\n\r\n", 4) == 0)
@@ -83,11 +93,13 @@ int main (int argc, char *argv[])
 			// Fermeture de la connexion entre le navigateur et le serveur
 			shutdown(clientSocket, SHUT_RDWR);
 			close(clientSocket);
+			clientSocket = -1;
 
 			exit(0);
 		}
 	}
 
 	close(listenerSocket);
+	clientSocket = -1;
 	return 0;
 }

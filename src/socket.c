@@ -23,12 +23,23 @@ int createListenerSocket()
 	if ((listenerSocket = socket(AF_INET, SOCK_STREAM, 0)) == -1)
 	{
 		printf("[ERROR] Listener socket creation\n");
-		return 0;
+		return -1;
 	}
 
+	int addressCanBeReused = 1;
+	setsockopt(listenerSocket, SOL_SOCKET, SO_REUSEADDR, &addressCanBeReused, sizeof(addressCanBeReused));
+
 	struct sockaddr_in address = getAddress();
-	bind(listenerSocket, (struct sockaddr*)&address, sizeof(address));
-	listen(listenerSocket, 5);
+	if (bind(listenerSocket, (struct sockaddr*)&address, sizeof(address)) < 0)
+	{
+		printf("[ERROR] Listener socket binding\n");
+		return -1;
+	}
+	if (listen(listenerSocket, 5) < 0)
+	{
+		printf("[ERROR] Listener socket listening\n");
+		return -1;
+	}
 
 	return listenerSocket;
 }
@@ -52,13 +63,13 @@ int getServerSocket(char* hostName, char* port)
 	if (error != 0)
 	{
 		printf("[ERROR] getaddrinfo: %s - %s:%s\n", gai_strerror(error), hostName, port);
-		return 0;
+		return -1;
 	}
 
 	int hostSocket;
 	struct addrinfo* address;
 	for(address = addressInfo; address != NULL; address = address->ai_next)
-	{	
+	{
 		if ((hostSocket = socket(address->ai_family, address->ai_socktype, address->ai_protocol)) == -1
 			|| connect(hostSocket, address->ai_addr, address->ai_addrlen) == -1)
 		{
@@ -72,5 +83,5 @@ int getServerSocket(char* hostName, char* port)
 	}
 
 	freeaddrinfo(addressInfo);
-	return address == NULL ? 0 : hostSocket;
+	return address == NULL ? -1 : hostSocket;
 }
