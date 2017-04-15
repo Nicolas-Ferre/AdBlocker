@@ -10,53 +10,73 @@
 #include  <unistd.h>
 #include  <stdio.h>
 #include  <string.h>
+#include <signal.h>
+
+int listenerSocket;
+int clientSocket;
+int hostSocket;
+
+void clearProgram()
+{
+	shutdown(listenerSocket, SHUT_RDWR);
+	close(listenerSocket);
+	shutdown(clientSocket, SHUT_RDWR);
+	close(clientSocket);
+	shutdown(hostSocket, SHUT_RDWR);
+	close(hostSocket);
+	exit(0);
+}
 
 int main (int argc, char *argv[])
 {
+	signal(SIGINT, clearProgram);
+
 	// Creation du socket d'écoute
 	char buffer[BUFFER_SIZE];
-	int listenerSocket = createListenerSocket();
+	listenerSocket = createListenerSocket();
 
-	//decoupageListeDansFichier();
+	decoupageListeDansFichier();
 
 	while (listenerSocket != 0)
 	{
-		int clientSocket = getClientSocket(listenerSocket);
+		clientSocket = getClientSocket(listenerSocket);
 
-		if (fork() == 0) 
+		if (fork() == 0)
 		{
 			close(listenerSocket);
-
 			int n = recv(clientSocket, buffer, BUFFER_SIZE, 0);	// Récupération de la commande GET du navigateur
 
 			if (strncmp(buffer + n - 4, "\r\n\r\n", 4) == 0)
 			{
-				if (strncmp(buffer, "GET", 3) == 0)
-				{
-					// Traitement de la requête GET
-					char* host = getHostFromGetCommand(buffer);	// Extraction de l'hôte
+				int isGetCommand = strncmp(buffer, "GET", 3) == 0;
+				int isConnectCommand = strncmp(buffer, "CONNECT", 7) == 0;
 
-					if (isAdOptiBis(host) == 0)
-						retrieveHostResponse(host, buffer, n, clientSocket);	// Envoie de la requête à l'hôte et envoie de la réponse au navigateur
-					else if (isAdOptiBis(host) == 1)
-						printf("Publicité supprimée : %s\n", host);
-					else
-						printf("Erreur : %s\n", host);
-				}
-				else if (strncmp(buffer, "CONNECT", 7) == 0)
+				if (isGetCommand || isConnectCommand)
 				{
-					// Traitement de la requête CONNECT
 					char* host = getHostFromGetCommand(buffer);	// Extraction de l'hôte
 
 					if (isAdOptiBis(host) == 0)
 					{
-						send(clientSocket, "HTTP/1.0 200 Connection established\r\n\r\n", strlen("HTTP/1.0 200 Connection established\r\n\r\n"), 0);
-						retrieveHostSslResponse(host, buffer, n, clientSocket);
+						// Envoie de la requête à l'hôte et envoie de la réponse au navigateur
+						if (isGetCommand)
+						{
+							retrieveHostResponse(host, buffer, n, clientSocket, &hostSocket);
+						}
+						else
+						{
+							send(clientSocket, "HTTP/1.0 200 Connection established\r\n\r\n", strlen("HTTP/1.0 200 Connection established\r\n\r\n"), 0);
+							retrieveHostSslResponse(host, clientSocket, &hostSocket);
+						}
 					}
 					else if (isAdOptiBis(host) == 1)
+					{
+						send(clientSocket, "HTTP/1.0 403 Forbidden\r\n\r\n", strlen("HTTP/1.0 403 Forbidden\r\n\r\n"), 0);
 						printf("Publicité supprimée : %s\n", host);
+					}
 					else
+					{
 						printf("Erreur : %s\n", host);
+					}
 				}
 			}
 

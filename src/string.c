@@ -9,7 +9,7 @@ int getPropertyValuePositionInString(char* string, char* property)
 	char temporaryString[strlen(string)];
 	char strToCompare[strlen(property) + 2];
 	sprintf(strToCompare, "%s: ", property);
-	
+
 
 	for (i = 0; i < strlen(string) - strlen(strToCompare); ++i)
 	{
@@ -32,9 +32,10 @@ char* getEndOfStringLine(char* string, int firstPosition)
 		if (string[i] == '\n')
 			returnLinePosition = i - 1;
 
-	int endOfLineSize = i - firstPosition - 1;
+	int endOfLineSize = returnLinePosition - firstPosition + 1;
 	char* endOfLine = malloc(sizeof(char) * endOfLineSize);
-	strncat(endOfLine, string + firstPosition, endOfLineSize);
+	for (i = firstPosition; i < returnLinePosition + 1; ++i)
+		endOfLine[i - firstPosition] = string[i];
 	endOfLine[endOfLineSize - 1] = '\0';
 	return endOfLine;
 }

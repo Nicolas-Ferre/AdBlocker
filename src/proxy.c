@@ -9,14 +9,14 @@
 #include <sys/time.h>
 #include <unistd.h>
 
-void retrieveHostResponse(char* host, char* command, int bufferSize, int clientSocket)
+void retrieveHostResponse(char* host, char* command, int bufferSize, int clientSocket, int* hostSocket)
 {
 	static char buffer[BUFFER_SIZE];
 
 	char* hostName = getHostName(host);
 	char port[6];
 	sprintf(port, "%d", getPort(host));
-	int hostSocket = getServerSocket(hostName, port);
+	*hostSocket = getServerSocket(hostName, port);
 
 	if (hostSocket == 0)
 	{
@@ -26,12 +26,12 @@ void retrieveHostResponse(char* host, char* command, int bufferSize, int clientS
 	else
 	{
 		struct timeval timeout = {5, 0};
-		setsockopt(hostSocket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&timeout, sizeof(struct timeval));
-		send(hostSocket, command, bufferSize, 0);
+		setsockopt(*hostSocket, SOL_SOCKET, SO_RCVTIMEO, (struct timeval *)&timeout, sizeof(struct timeval));
+		send(*hostSocket, command, bufferSize, 0);
 
 		while (1)
 		{
-			int n = recv(hostSocket, buffer, BUFFER_SIZE, 0);
+			int n = recv(*hostSocket, buffer, BUFFER_SIZE, 0);
 			if (n <= 0)
 				break;
 
@@ -39,20 +39,20 @@ void retrieveHostResponse(char* host, char* command, int bufferSize, int clientS
 		}
 	}
 
-	shutdown(hostSocket, SHUT_RDWR);
-	close(hostSocket);
+	shutdown(*hostSocket, SHUT_RDWR);
+	close(*hostSocket);
 }
 
-void retrieveHostSslResponse(char* host, char* command, int bufferSize, int clientSocket)
+void retrieveHostSslResponse(char* host, int clientSocket, int* hostSocket)
 {
 	static char buffer[BUFFER_SIZE];
 
 	char* hostName = getHostName(host);
 	char port[6];
 	sprintf(port, "%d", getPort(host));
-	int hostSocket = getServerSocket(hostName, port);
+	*hostSocket = getServerSocket(hostName, port);
 
-	if (hostSocket == 0)
+	if (*hostSocket == 0)
 	{
 		fprintf(stderr, "[ERROR] Connection - %s:%s\n", hostName, port);
 		exit(1);
@@ -61,13 +61,13 @@ void retrieveHostSslResponse(char* host, char* command, int bufferSize, int clie
 	{
 		struct timeval timeout = {5, 0};
 		fd_set fdset;
-		int maxSocket = hostSocket > clientSocket ? hostSocket + 1 : clientSocket + 1;
+		int maxSocket = *hostSocket > clientSocket ? *hostSocket + 1 : clientSocket + 1;
 
 		while (1)
 		{
 			FD_ZERO(&fdset);
 			FD_SET(clientSocket, &fdset);
-			FD_SET(hostSocket, &fdset);
+			FD_SET(*hostSocket, &fdset);
 
 			int error = select(maxSocket, &fdset, NULL, NULL, &timeout);
 			if (error <= 0)
@@ -79,11 +79,11 @@ void retrieveHostSslResponse(char* host, char* command, int bufferSize, int clie
 				if (n <= 0)
 					break;
 
-				n = send(hostSocket, buffer, n, 0);
+				n = send(*hostSocket, buffer, n, 0);
 			}
-			else if (FD_ISSET(hostSocket, &fdset))
+			else if (FD_ISSET(*hostSocket, &fdset))
 			{
-				int n = recv(hostSocket, buffer, BUFFER_SIZE, 0);
+				int n = recv(*hostSocket, buffer, BUFFER_SIZE, 0);
 				if (n <= 0)
 					break;
 
@@ -92,6 +92,6 @@ void retrieveHostSslResponse(char* host, char* command, int bufferSize, int clie
 		}
 	}
 
-	shutdown(hostSocket, SHUT_RDWR);
-	close(hostSocket);
+	shutdown(*hostSocket, SHUT_RDWR);
+	close(*hostSocket);
 }
