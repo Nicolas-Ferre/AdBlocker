@@ -64,8 +64,9 @@ int main (int argc, char *argv[])
 				if (isGetCommand || isConnectCommand)
 				{
 					char* host = getHostFromGetCommand(buffer);	// Extraction de l'hôte
+					int hostIsAd = isAd(host);
 
-					if (isAdOptiBis(host) == 0)
+					if (hostIsAd == 0)
 					{
 						// Envoie de la requête à l'hôte et envoie de la réponse au navigateur
 						if (isGetCommand)
@@ -78,7 +79,7 @@ int main (int argc, char *argv[])
 							retrieveHostSslResponse(host, clientSocket, &hostSocket);
 						}
 					}
-					else if (isAdOptiBis(host) == 1)
+					else if (hostIsAd == 1)
 					{
 						send(clientSocket, "HTTP/1.0 403 Forbidden\r\n\r\n", strlen("HTTP/1.0 403 Forbidden\r\n\r\n"), 0);
 						printf("Publicité supprimée : %s\n", host);

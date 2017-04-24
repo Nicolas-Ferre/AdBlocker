@@ -8,8 +8,6 @@
 
 #include "constants.h"
 
-int isAd(char * host, char* motsList[LIST_LINE_COUNT], int nombreMotsList);
-int isAdOpti(char * host );
-int isAdOptiBis(char * host );
+int isAd(char * host );
 
 #endif
