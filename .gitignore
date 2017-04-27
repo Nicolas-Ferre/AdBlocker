@@ -6,3 +6,4 @@ src/*
 !src/*.c
 !makefile
 !.gitignore
+!ReadMe.txt
